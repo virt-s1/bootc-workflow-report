@@ -65,7 +65,7 @@ jobs:
           path: bootc-workflow-test
 
       - name: Sync test code here
-        command: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
+        run: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
 
       - name: Run the tests
         uses: sclorg/testing-farm-as-github-action@v1
@@ -97,7 +97,7 @@ jobs:
           path: bootc-workflow-test
 
       - name: Sync test code here
-        command: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
+        run: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
 
       - name: Run the tests
         uses: sclorg/testing-farm-as-github-action@v1
@@ -129,7 +129,7 @@ jobs:
           path: bootc-workflow-test
 
       - name: Sync test code here
-        command: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
+        run: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
 
       - name: Run the tests
         uses: sclorg/testing-farm-as-github-action@v1
@@ -161,7 +161,7 @@ jobs:
           path: bootc-workflow-test
 
       - name: Sync test code here
-        command: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
+        run: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
 
       - name: Run the tests
         uses: sclorg/testing-farm-as-github-action@v1
