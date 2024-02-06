@@ -4,7 +4,7 @@ name: centos-bootc-dev:stream9 trigger
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'
+    - cron: '0 1 * * *'
 
 jobs:
   check-image:
