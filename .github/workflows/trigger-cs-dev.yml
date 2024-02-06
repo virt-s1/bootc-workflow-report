@@ -1,5 +1,5 @@
 ---
-name: centos-bootc:stream9 trigger
+name: centos-bootc-dev:stream9 trigger
 
 on:
   workflow_dispatch:
@@ -12,13 +12,13 @@ jobs:
     if: github.repository == 'virt-s1/bootc-workflow-report'
     runs-on: ubuntu-latest
     steps:
-      - name: Check centos-bootc:stream9 image info
+      - name: Check centos-bootc-dev:stream9 image info
         id: check_image_cs9
         run: |
-          IMAGE_DIGEST=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Digest')
-          IMAGE_VERSION=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Labels.version')
-          KERNEL_VERSION=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Labels."ostree.linux"')
-          COMPOSE_ID=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Labels."redhat.compose-id"')
+          IMAGE_DIGEST=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc-dev:stream9 | jq -r '.Digest')
+          IMAGE_VERSION=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc-dev:stream9 | jq -r '.Labels.version')
+          KERNEL_VERSION=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc-dev:stream9 | jq -r '.Labels."ostree.linux"')
+          COMPOSE_ID=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc-dev:stream9 | jq -r '.Labels."redhat.compose-id"')
 
           echo "image_digest=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
           echo "image_version=$IMAGE_VERSION" >> $GITHUB_OUTPUT
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Save tested container image digest
-        run: echo "${{ needs.check-image.outputs.image_digest }}" >> pr_files/pr_file.cs
+        run: echo "${{ needs.check-image.outputs.image_digest }}" >> pr_files/pr_file.cs-dev
 
       - name: Get current date
         id: date
@@ -49,18 +49,18 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "build: centos-bootc:stream9 - ${{ needs.check-image.outputs.image_version }} - ${{ steps.date.outputs.date }}"
+          commit-message: "build: centos-bootc-dev:stream9 - ${{ needs.check-image.outputs.image_version }} - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "centos-bootc:stream9 - ${{ needs.check-image.outputs.image_version }} - ${{ steps.date.outputs.date }}"
-          labels: auto-merge,centos-bootc:stream9
+          title: "centos-bootc-dev:stream9 - ${{ needs.check-image.outputs.image_version }} - ${{ steps.date.outputs.date }}"
+          labels: auto-merge,centos-bootc-dev:stream9
           body: |
-            centos-bootc:stream9 image ${{ needs.check-image.outputs.image_version }}
+            centos-bootc-dev:stream9 image ${{ needs.check-image.outputs.image_version }}
             - Date: ${{ steps.date.outputs.date }}
-            - Image URL: quay.io/centos-bootc/centos-bootc:stream9
+            - Image URL: quay.io/centos-bootc/centos-bootc-dev:stream9
             - Image Digest: ${{ needs.check-image.outputs.image_digest }}
             - Image Version: ${{ needs.check-image.outputs.image_version }}
             - Kernel Version: ${{ needs.check-image.outputs.kernel_version }}
@@ -79,12 +79,12 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /test-cs9
+          body: /test-cs9-dev
 
       - name: Create a project card to track compose test result
         uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: bootc test
-          column-name: centos-bootc:stream9
+          column-name: centos-bootc-dev:stream9
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
