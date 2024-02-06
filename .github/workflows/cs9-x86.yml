@@ -51,6 +51,10 @@ jobs:
 
   cs9-x86-openstack-replace:
     needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
+            (endsWith(github.event.comment.body, '/test-cs9') ||
+            endsWith(github.event.comment.body, '/test-cs9-x86') ||
+            endsWith(github.event.comment.body, '/test-cs9-x86-openstack-replace')) }}
     runs-on: ubuntu-latest
     container: quay.io/testing-farm/cli:latest
     env:
@@ -72,7 +76,7 @@ jobs:
           route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
-          description: 'Testing Farm - Running Test...'
+          description: 'Testing Farm is running test...'
           target_url: ${{ steps.job-log-url.outputs.html_url }}
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
@@ -127,7 +131,7 @@ jobs:
           route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: ${{ job.status }}
-          description: 'Testing Farm - Test got ${{ job.status }}'
+          description: 'Testing Farm got ${{ job.status }}'
           target_url: ${{ steps.job-log-url.outputs.html_url }}
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
@@ -139,81 +143,280 @@ jobs:
           route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: error
-          description: 'Testing Farm - Test got error'
+          description: 'Testing Farm got error'
           target_url: ${{ steps.job-log-url.outputs.html_url }}
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
-      - uses: actions/upload-artifact@v3
-        if: ${{ always() }}
+  cs9-x86-gcp-replace:
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
+            (endsWith(github.event.comment.body, '/test-cs9') ||
+            endsWith(github.event.comment.body, '/test-cs9-x86') ||
+            endsWith(github.event.comment.body, '/test-cs9-x86-gcp-replace')) }}
+    runs-on: ubuntu-latest
+    container: quay.io/testing-farm/cli:latest
+    env:
+      STATUS_NAME: cs9-x86-gcp-replace
+
+    steps:
+      - name: Get Current Job Log URL
+        id: job-log-url
+        run: |
+          apk add curl jq
+          JOB_HTML_URL=$(curl --get -Ss -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/virt-s1/bootc-workflow-report/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=30" | jq -r --arg job_name "cs9-x86-gcp-replace" '.jobs | map(select(.name == "cs9-x86-gcp-replace")) | .[0].html_url')
+          echo "html_url=$JOB_HTML_URL" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
         with:
-          name: cs9-x86-openstack-replace
-          path: |
-            /tmp/artifacts/*.json
-            /tmp/artifacts/*.log
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Testing Farm is running test...'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
 
-  # cs9-x86-gcp-replace:
-  #   needs: pr-info
-  #   runs-on: ubuntu-latest
+      - name: Clone repository
+        uses: actions/checkout@v4
+        with:
+          repository: virt-s1/bootc-workflow-test
+          ref: main
+          fetch-depth: 0
 
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v4
+      - name: Run the tests
+        run: |
+          testing-farm request \
+              --plan "$PLATFORM" \
+              --environment TEST_OS="$TEST_OS" \
+              --secret QUAY_USERNAME="$QUAY_USERNAME" \
+              --secret QUAY_PASSWORD="$QUAY_PASSWORD" \
+              --secret GCP_PROJECT="$GCP_PROJECT" \
+              --secret GCP_SERVICE_ACCOUNT_NAME="$GCP_SERVICE_ACCOUNT_NAME" \
+              --secret GCP_SERVICE_ACCOUNT_FILE_B64="$GCP_SERVICE_ACCOUNT_FILE_B64" \
+              --git-url "$GIT_URL" \
+              --git-ref "$GIT_REF" \
+              --compose CentOS-Stream-9 \
+              --arch "$ARCH" \
+              --context "arch=${ARCH}" \
+              --timeout "$TIMEOUT"
+        env:
+          GIT_URL: https://github.com/virt-s1/bootc-workflow-test
+          GIT_REF: main
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+          GCP_SERVICE_ACCOUNT_NAME: ${{ secrets.GCP_SERVICE_ACCOUNT_NAME }}
+          GCP_SERVICE_ACCOUNT_FILE_B64: ${{ secrets.GCP_SERVICE_ACCOUNT_FILE_B64 }}
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          TESTING_FARM_API_TOKEN: ${{ secrets.TF_API_KEY }}
+          TEST_OS: centos-stream-9
+          ARCH: x86_64
+          PLATFORM: gcp
+          TIMEOUT: 30
 
-  #     - name: Run the tests
-  #       uses: sclorg/testing-farm-as-github-action@v1
-  #       with:
-  #         compose: CentOS-Stream-9
-  #         api_key: ${{ secrets.TF_API_KEY }}
-  #         git_url: virt-s1/bootc-workflow-test
-  #         git_ref: main
-  #         arch: "x86_64"
-  #         tmt_context: "arch=x86_64"
-  #         pull_request_status_name: "bootc-cs9-x86-gcp-replace"
-  #         tmt_plan_regex: "gcp"
-  #         tf_scope: private
-  #         secrets: "GCP_PROJECT=${{ secrets.GCP_PROJECT }};GCP_SERVICE_ACCOUNT_NAME=${{ secrets.GCP_SERVICE_ACCOUNT_NAME }};GCP_SERVICE_ACCOUNT_FILE_B64=${{ secrets.GCP_SERVICE_ACCOUNT_FILE_B64 }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};TEST_OS=centos-stream-9"
+      - name: Set non cancelled result status
+        if: ${{ !cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: ${{ job.status }}
+          description: 'Testing Farm got ${{ job.status }}'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
 
-  # cs9-x86-aws-replace:
-  #   needs: pr-info
-  #   runs-on: ubuntu-latest
+      - name: Set cancelled result status
+        if: ${{ cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: error
+          description: 'Testing Farm got error'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
 
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v4
+  cs9-x86-aws-replace:
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
+            (endsWith(github.event.comment.body, '/test-cs9') ||
+            endsWith(github.event.comment.body, '/test-cs9-x86') ||
+            endsWith(github.event.comment.body, '/test-cs9-x86-aws-replace')) }}
+    runs-on: ubuntu-latest
+    container: quay.io/testing-farm/cli:latest
+    env:
+      STATUS_NAME: cs9-x86-aws-replace
 
-  #     - name: Run the tests
-  #       uses: sclorg/testing-farm-as-github-action@v1
-  #       with:
-  #         compose: CentOS-Stream-9
-  #         api_key: ${{ secrets.TF_API_KEY }}
-  #         git_url: virt-s1/bootc-workflow-test
-  #         git_ref: main
-  #         arch: "x86_64"
-  #         tmt_context: "arch=x86_64"
-  #         pull_request_status_name: "bootc-cs9-x86-aws-replace"
-  #         tmt_plan_regex: "aws"
-  #         tf_scope: private
-  #         secrets: "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};AWS_REGION=${{ secrets.AWS_REGION }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};TEST_OS=centos-stream-9"
+    steps:
+      - name: Get Current Job Log URL
+        id: job-log-url
+        run: |
+          apk add curl jq
+          JOB_HTML_URL=$(curl --get -Ss -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/virt-s1/bootc-workflow-report/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=30" | jq -r --arg job_name "cs9-x86-aws-replace" '.jobs | map(select(.name == "cs9-x86-aws-replace")) | .[0].html_url')
+          echo "html_url=$JOB_HTML_URL" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # cs9-x86-libvirt-replace:
-  #   needs: pr-info
-  #   runs-on: ubuntu-latest
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Testing Farm is running test...'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
 
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v4
+      - name: Clone repository
+        uses: actions/checkout@v4
+        with:
+          repository: virt-s1/bootc-workflow-test
+          ref: main
+          fetch-depth: 0
 
-  #     - name: Run the tests
-  #       uses: sclorg/testing-farm-as-github-action@v1
-  #       with:
-  #         compose: CentOS-Stream-9
-  #         api_key: ${{ secrets.TF_API_KEY }}
-  #         git_url: virt-s1/bootc-workflow-test
-  #         git_ref: main
-  #         arch: "x86_64"
-  #         tmt_context: "arch=x86_64"
-  #         pull_request_status_name: "bootc-cs9-x86-libvirt-replace"
-  #         tmt_plan_regex: "local"
-  #         tf_scope: private
-  #         secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};TEST_OS=centos-stream-9"
+      - name: Run the tests
+        run: |
+          testing-farm request \
+              --plan "$PLATFORM" \
+              --environment TEST_OS="$TEST_OS" \
+              --secret QUAY_USERNAME="$QUAY_USERNAME" \
+              --secret QUAY_PASSWORD="$QUAY_PASSWORD" \
+              --secret AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+              --secret AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
+              --secret AWS_REGION="$AWS_REGION" \
+              --git-url "$GIT_URL" \
+              --git-ref "$GIT_REF" \
+              --compose CentOS-Stream-9 \
+              --arch "$ARCH" \
+              --context "arch=${ARCH}" \
+              --timeout "$TIMEOUT"
+        env:
+          GIT_URL: https://github.com/virt-s1/bootc-workflow-test
+          GIT_REF: main
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          TESTING_FARM_API_TOKEN: ${{ secrets.TF_API_KEY }}
+          TEST_OS: centos-stream-9
+          ARCH: x86_64
+          PLATFORM: aws
+          TIMEOUT: 30
+
+      - name: Set non cancelled result status
+        if: ${{ !cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: ${{ job.status }}
+          description: 'Testing Farm got ${{ job.status }}'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+
+      - name: Set cancelled result status
+        if: ${{ cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: error
+          description: 'Testing Farm got error'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+
+  cs9-x86-libvirt-replace:
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
+            (endsWith(github.event.comment.body, '/test-cs9') ||
+            endsWith(github.event.comment.body, '/test-cs9-x86') ||
+            endsWith(github.event.comment.body, '/test-cs9-x86-libvirt-replace')) }}
+    runs-on: ubuntu-latest
+    container: quay.io/testing-farm/cli:latest
+    env:
+      STATUS_NAME: cs9-x86-libvirt-replace
+
+    steps:
+      - name: Get Current Job Log URL
+        id: job-log-url
+        run: |
+          apk add curl jq
+          JOB_HTML_URL=$(curl --get -Ss -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/virt-s1/bootc-workflow-report/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=30" | jq -r --arg job_name "cs9-x86-libvirt-replace" '.jobs | map(select(.name == "cs9-x86-libvirt-replace")) | .[0].html_url')
+          echo "html_url=$JOB_HTML_URL" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Testing Farm is running test...'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+
+      - name: Clone repository
+        uses: actions/checkout@v4
+        with:
+          repository: virt-s1/bootc-workflow-test
+          ref: main
+          fetch-depth: 0
+
+      - name: Run the tests
+        run: |
+          testing-farm request \
+              --plan local \
+              --environment TEST_OS="$TEST_OS" \
+              --secret QUAY_USERNAME="$QUAY_USERNAME" \
+              --secret QUAY_PASSWORD="$QUAY_PASSWORD" \
+              --git-url "$GIT_URL" \
+              --git-ref "$GIT_REF" \
+              --compose CentOS-Stream-9 \
+              --arch "$ARCH" \
+              --context "arch=${ARCH}" \
+              --timeout "$TIMEOUT"
+        env:
+          GIT_URL: https://github.com/virt-s1/bootc-workflow-test
+          GIT_REF: main
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          TESTING_FARM_API_TOKEN: ${{ secrets.TF_API_KEY }}
+          TEST_OS: centos-stream-9
+          ARCH: x86_64
+          PLATFORM: libvirt
+          TIMEOUT: 30
+
+      - name: Set non cancelled result status
+        if: ${{ !cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: ${{ job.status }}
+          description: 'Testing Farm got ${{ job.status }}'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+
+      - name: Set cancelled result status
+        if: ${{ cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: error
+          description: 'Testing Farm got error'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
