@@ -99,8 +99,8 @@ jobs:
         with:
           compose: RHEL-9.4.0-Nightly
           api_key: ${{ secrets.TF_API_KEY }}
-          git_url: ${{ needs.pr-info.outputs.repo_url }}
-          git_ref: ${{ needs.pr-info.outputs.ref }}
+          git_url: https://github.com/virt-s1/bootc-workflow-test
+          git_ref: main
           arch: "x86_64"
           tmt_context: "arch=x86_64"
           update_pull_request_status: true
@@ -129,8 +129,8 @@ jobs:
         with:
           compose: RHEL-9.4.0-Nightly
           api_key: ${{ secrets.TF_API_KEY }}
-          git_url: ${{ needs.pr-info.outputs.repo_url }}
-          git_ref: ${{ needs.pr-info.outputs.ref }}
+          git_url: https://github.com/virt-s1/bootc-workflow-test
+          git_ref: main
           arch: "x86_64"
           tmt_context: "arch=x86_64"
           update_pull_request_status: true
@@ -159,8 +159,8 @@ jobs:
         with:
           compose: RHEL-9.4.0-Nightly
           api_key: ${{ secrets.TF_API_KEY }}
-          git_url: ${{ needs.pr-info.outputs.repo_url }}
-          git_ref: ${{ needs.pr-info.outputs.ref }}
+          git_url: https://github.com/virt-s1/bootc-workflow-test
+          git_ref: main
           arch: "x86_64"
           tmt_context: "arch=x86_64"
           update_pull_request_status: true
