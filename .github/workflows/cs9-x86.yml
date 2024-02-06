@@ -72,7 +72,7 @@ jobs:
           route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
-          description: 'CentOS Stream 9 - Running Test...'
+          description: 'Testing Farm - Running Test...'
           target_url: ${{ steps.job-log-url.outputs.html_url }}
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
@@ -87,7 +87,7 @@ jobs:
       - name: Run the tests
         run: |
           testing-farm request \
-              --plan "/all/openstack" \
+              --plan "$PLATFORM" \
               --environment TEST_OS="$TEST_OS" \
               --secret QUAY_USERNAME="$QUAY_USERNAME" \
               --secret QUAY_PASSWORD="$QUAY_PASSWORD" \
@@ -117,16 +117,17 @@ jobs:
           TESTING_FARM_API_TOKEN: ${{ secrets.TF_API_KEY }}
           TEST_OS: centos-stream-9
           ARCH: x86_64
+          PLATFORM: openstack
           TIMEOUT: 30
 
       - name: Set non cancelled result status
         if: ${{ !cancelled() }}
         uses: octokit/request-action@v2.x
         with:
-          route: 'POST /repos/osbuild/osbuild-composer/statuses/${{ needs.pr-info.outputs.sha }}'
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: ${{ job.status }}
-          description: 'CentOS Stream 9 - Test got ${{ job.status }}'
+          description: 'Testing Farm - Test got ${{ job.status }}'
           target_url: ${{ steps.job-log-url.outputs.html_url }}
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
@@ -135,10 +136,10 @@ jobs:
         if: ${{ cancelled() }}
         uses: octokit/request-action@v2.x
         with:
-          route: 'POST /repos/osbuild/osbuild-composer/statuses/${{ needs.pr-info.outputs.sha }}'
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: error
-          description: 'CentOS Stream 9 - Test got error'
+          description: 'Testing Farm - Test got error'
           target_url: ${{ steps.job-log-url.outputs.html_url }}
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
