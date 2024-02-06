@@ -57,23 +57,13 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4
 
-      - name: Clone repository
-        uses: actions/checkout@v4
-        with:
-          repository: virt-s1/bootc-workflow-test
-          fetch-depth: 0
-          path: bootc-workflow-test
-
-      - name: Sync test code here
-        run: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
-
       - name: Run the tests
         uses: sclorg/testing-farm-as-github-action@v1
         with:
           compose: CentOS-Stream-9
           api_key: ${{ secrets.TF_API_KEY }}
-          git_url: ${{ needs.pr-info.outputs.repo_url }}
-          git_ref: ${{ needs.pr-info.outputs.ref }}
+          git_url: virt-s1/bootc-workflow-test
+          git_ref: main
           arch: "x86_64"
           tmt_context: "arch=x86_64"
           pull_request_status_name: "bootc-cs9-x86-openstack-replace"
@@ -89,23 +79,13 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4
 
-      - name: Clone repository
-        uses: actions/checkout@v4
-        with:
-          repository: virt-s1/bootc-workflow-test
-          fetch-depth: 0
-          path: bootc-workflow-test
-
-      - name: Sync test code here
-        run: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
-
       - name: Run the tests
         uses: sclorg/testing-farm-as-github-action@v1
         with:
           compose: CentOS-Stream-9
           api_key: ${{ secrets.TF_API_KEY }}
-          git_url: ${{ needs.pr-info.outputs.repo_url }}
-          git_ref: ${{ needs.pr-info.outputs.ref }}
+          git_url: virt-s1/bootc-workflow-test
+          git_ref: main
           arch: "x86_64"
           tmt_context: "arch=x86_64"
           pull_request_status_name: "bootc-cs9-x86-gcp-replace"
@@ -121,23 +101,13 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4
 
-      - name: Clone repository
-        uses: actions/checkout@v4
-        with:
-          repository: virt-s1/bootc-workflow-test
-          fetch-depth: 0
-          path: bootc-workflow-test
-
-      - name: Sync test code here
-        run: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
-
       - name: Run the tests
         uses: sclorg/testing-farm-as-github-action@v1
         with:
           compose: CentOS-Stream-9
           api_key: ${{ secrets.TF_API_KEY }}
-          git_url: ${{ needs.pr-info.outputs.repo_url }}
-          git_ref: ${{ needs.pr-info.outputs.ref }}
+          git_url: virt-s1/bootc-workflow-test
+          git_ref: main
           arch: "x86_64"
           tmt_context: "arch=x86_64"
           pull_request_status_name: "bootc-cs9-x86-aws-replace"
@@ -153,23 +123,13 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4
 
-      - name: Clone repository
-        uses: actions/checkout@v4
-        with:
-          repository: virt-s1/bootc-workflow-test
-          fetch-depth: 0
-          path: bootc-workflow-test
-
-      - name: Sync test code here
-        run: rsync -a --exclude='.git' --exclude='.github' --exclude='.tekton' --exclude='.gitignore' --exclude='.yamllint.yml' --exclude='LICENSE' --exclude='README.md' ./bootc-workflow-test .
-
       - name: Run the tests
         uses: sclorg/testing-farm-as-github-action@v1
         with:
           compose: CentOS-Stream-9
           api_key: ${{ secrets.TF_API_KEY }}
-          git_url: ${{ needs.pr-info.outputs.repo_url }}
-          git_ref: ${{ needs.pr-info.outputs.ref }}
+          git_url: virt-s1/bootc-workflow-test
+          git_ref: main
           arch: "x86_64"
           tmt_context: "arch=x86_64"
           pull_request_status_name: "bootc-cs9-x86-libvirt-replace"
