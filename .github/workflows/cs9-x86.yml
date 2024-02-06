@@ -52,87 +52,166 @@ jobs:
   cs9-x86-openstack-replace:
     needs: pr-info
     runs-on: ubuntu-latest
+    container: quay.io/testing-farm/cli:latest
+    env:
+      STATUS_NAME: cs9-x86-openstack-replace
 
     steps:
+      - name: Get Current Job Log URL
+        id: job-log-url
+        run: |
+          sudo dnf install -y jq
+          JOB_HTML_URL=$(curl --get -Ss -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/virt-s1/bootc-workflow-report/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=30" | jq -r --arg job_name "cs9-x86-openstack-replace" '.jobs | map(select(.name == "cs9-x86-openstack-replace")) | .[0].html_url')
+          echo "html_url=$JOB_HTML_URL" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/virt-s1/bootc-workflow-report/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'CentOS Stream 9 - Running Test...'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+
       - name: Clone repository
         uses: actions/checkout@v4
+        with:
+          repository: virt-s1/bootc-workflow-test
+          ref: main
+          fetch-depth: 0
 
       - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@v1
+        run: |
+          testing-farm request \
+              --secret QUAY_USERNAME="$QUAY_USERNAME" \
+              --secret QUAY_PASSWORD="$QUAY_PASSWORD" \
+              --secret OS_USERNAME="$OS_USERNAME" \
+              --secret OS_PASSWORD="$OS_PASSWORD" \
+              --secret OS_AUTH_URL="$OS_AUTH_URL" \
+              --secret OS_PROJECT_NAME="$OS_PROJECT_NAME" \
+              --secret OS_USER_DOMAIN_NAME="$OS_USER_DOMAIN_NAME" \
+              --secret OS_PROJECT_DOMAIN_NAME="$OS_PROJECT_DOMAIN_NAME" \
+              --git-url "$GIT_URL" \
+              --git-ref "$GIT_REF" \
+              --compose CentOS-Stream-9 \
+              --arch "$ARCH" \
+              --context "arch=${ARCH}" \
+              --timeout "$TIMEOUT"
+        env:
+          GIT_URL: https://github.com/virt-s1/bootc-workflow-test
+          GIT_REF: main
+          OS_USERNAME: ${{ secrets.OS_USERNAME }}
+          OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
+          OS_AUTH_URL: ${{ secrets.OS_AUTH_URL }}
+          OS_PROJECT_NAME: ${{ secrets.OS_PROJECT_NAME }}
+          OS_USER_DOMAIN_NAME: ${{ secrets.OS_USER_DOMAIN_NAME }}
+          OS_PROJECT_DOMAIN_NAME: ${{ secrets.OS_PROJECT_DOMAIN_NAME }}
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          TESTING_FARM_API_TOKEN: ${{ secrets.TF_API_KEY }}
+          TEST_OS: centos-stream-9
+          PLATFORM: openstack
+          ARCH: x86_64
+          TIMEOUT: 30
+
+      - name: Set non cancelled result status
+        if: ${{ !cancelled() }}
+        uses: octokit/request-action@v2.x
         with:
-          compose: CentOS-Stream-9
-          api_key: ${{ secrets.TF_API_KEY }}
-          git_url: virt-s1/bootc-workflow-test
-          git_ref: main
-          arch: "x86_64"
-          tmt_context: "arch=x86_64"
-          pull_request_status_name: "bootc-cs9-x86-openstack-replace"
-          tmt_plan_regex: "openstack"
-          tf_scope: private
-          secrets: "OS_USERNAME=${{ secrets.OS_USERNAME }};OS_PASSWORD=${{ secrets.OS_PASSWORD }};OS_AUTH_URL=${{ secrets.OS_AUTH_URL }};OS_PROJECT_NAME=${{ secrets.OS_PROJECT_NAME }};OS_USER_DOMAIN_NAME=${{ secrets.OS_USER_DOMAIN_NAME }};OS_PROJECT_DOMAIN_NAME=${{ secrets.OS_PROJECT_DOMAIN_NAME }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};TEST_OS=centos-stream-9"
+          route: 'POST /repos/osbuild/osbuild-composer/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: ${{ job.status }}
+          description: 'CentOS Stream 9 - Test got ${{ job.status }}'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
 
-  cs9-x86-gcp-replace:
-    needs: pr-info
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-
-      - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@v1
+      - name: Set cancelled result status
+        if: ${{ cancelled() }}
+        uses: octokit/request-action@v2.x
         with:
-          compose: CentOS-Stream-9
-          api_key: ${{ secrets.TF_API_KEY }}
-          git_url: virt-s1/bootc-workflow-test
-          git_ref: main
-          arch: "x86_64"
-          tmt_context: "arch=x86_64"
-          pull_request_status_name: "bootc-cs9-x86-gcp-replace"
-          tmt_plan_regex: "gcp"
-          tf_scope: private
-          secrets: "GCP_PROJECT=${{ secrets.GCP_PROJECT }};GCP_SERVICE_ACCOUNT_NAME=${{ secrets.GCP_SERVICE_ACCOUNT_NAME }};GCP_SERVICE_ACCOUNT_FILE_B64=${{ secrets.GCP_SERVICE_ACCOUNT_FILE_B64 }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};TEST_OS=centos-stream-9"
+          route: 'POST /repos/osbuild/osbuild-composer/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: error
+          description: 'CentOS Stream 9 - Test got error'
+          target_url: ${{ steps.job-log-url.outputs.html_url }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
 
-  cs9-x86-aws-replace:
-    needs: pr-info
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-
-      - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@v1
+      - uses: actions/upload-artifact@v3
+        if: ${{ always() }}
         with:
-          compose: CentOS-Stream-9
-          api_key: ${{ secrets.TF_API_KEY }}
-          git_url: virt-s1/bootc-workflow-test
-          git_ref: main
-          arch: "x86_64"
-          tmt_context: "arch=x86_64"
-          pull_request_status_name: "bootc-cs9-x86-aws-replace"
-          tmt_plan_regex: "aws"
-          tf_scope: private
-          secrets: "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};AWS_REGION=${{ secrets.AWS_REGION }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};TEST_OS=centos-stream-9"
+          name: cs9-x86-openstack-replace
+          path: |
+            /tmp/artifacts/*.json
+            /tmp/artifacts/*.log
 
-  cs9-x86-libvirt-replace:
-    needs: pr-info
-    runs-on: ubuntu-latest
+  # cs9-x86-gcp-replace:
+  #   needs: pr-info
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v4
 
-      - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@v1
-        with:
-          compose: CentOS-Stream-9
-          api_key: ${{ secrets.TF_API_KEY }}
-          git_url: virt-s1/bootc-workflow-test
-          git_ref: main
-          arch: "x86_64"
-          tmt_context: "arch=x86_64"
-          pull_request_status_name: "bootc-cs9-x86-libvirt-replace"
-          tmt_plan_regex: "local"
-          tf_scope: private
-          secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};TEST_OS=centos-stream-9"
+  #     - name: Run the tests
+  #       uses: sclorg/testing-farm-as-github-action@v1
+  #       with:
+  #         compose: CentOS-Stream-9
+  #         api_key: ${{ secrets.TF_API_KEY }}
+  #         git_url: virt-s1/bootc-workflow-test
+  #         git_ref: main
+  #         arch: "x86_64"
+  #         tmt_context: "arch=x86_64"
+  #         pull_request_status_name: "bootc-cs9-x86-gcp-replace"
+  #         tmt_plan_regex: "gcp"
+  #         tf_scope: private
+  #         secrets: "GCP_PROJECT=${{ secrets.GCP_PROJECT }};GCP_SERVICE_ACCOUNT_NAME=${{ secrets.GCP_SERVICE_ACCOUNT_NAME }};GCP_SERVICE_ACCOUNT_FILE_B64=${{ secrets.GCP_SERVICE_ACCOUNT_FILE_B64 }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};TEST_OS=centos-stream-9"
+
+  # cs9-x86-aws-replace:
+  #   needs: pr-info
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Run the tests
+  #       uses: sclorg/testing-farm-as-github-action@v1
+  #       with:
+  #         compose: CentOS-Stream-9
+  #         api_key: ${{ secrets.TF_API_KEY }}
+  #         git_url: virt-s1/bootc-workflow-test
+  #         git_ref: main
+  #         arch: "x86_64"
+  #         tmt_context: "arch=x86_64"
+  #         pull_request_status_name: "bootc-cs9-x86-aws-replace"
+  #         tmt_plan_regex: "aws"
+  #         tf_scope: private
+  #         secrets: "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};AWS_REGION=${{ secrets.AWS_REGION }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};TEST_OS=centos-stream-9"
+
+  # cs9-x86-libvirt-replace:
+  #   needs: pr-info
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Run the tests
+  #       uses: sclorg/testing-farm-as-github-action@v1
+  #       with:
+  #         compose: CentOS-Stream-9
+  #         api_key: ${{ secrets.TF_API_KEY }}
+  #         git_url: virt-s1/bootc-workflow-test
+  #         git_ref: main
+  #         arch: "x86_64"
+  #         tmt_context: "arch=x86_64"
+  #         pull_request_status_name: "bootc-cs9-x86-libvirt-replace"
+  #         tmt_plan_regex: "local"
+  #         tf_scope: private
+  #         secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};TEST_OS=centos-stream-9"
