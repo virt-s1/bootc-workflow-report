@@ -70,6 +70,10 @@ jobs:
             - Kernel Version: ${{ needs.check-image.outputs.kernel_version }}
             - Compose ID: ${{ needs.check-image.outputs.compose_id }}
 
+            Test includes OS replace test and anaconda installation test
+            - The OS replace test will use `bootc install` command inside bootc container image to install bootc OCI Image
+            - The anaconda test will install the bootc OCI image from kickstart command `ostreecontainer`
+
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
         uses: peter-evans/enable-pull-request-automerge@v2
