@@ -58,6 +58,9 @@ jobs:
       matrix:
         arch: [x86_64]
         platform: [openstack, gcp, aws, libvirt]
+        include:
+          - arch: aarch64
+            platform: aws
     runs-on: ubuntu-latest
 
     steps:
@@ -93,6 +96,9 @@ jobs:
       matrix:
         arch: [x86_64]
         platform: [openstack, gcp, aws, libvirt]
+        include:
+          - arch: aarch64
+            platform: aws
     runs-on: ubuntu-latest
 
     steps:
@@ -128,6 +134,9 @@ jobs:
       matrix:
         arch: [x86_64]
         platform: [openstack, gcp, aws, libvirt]
+        include:
+          - arch: aarch64
+            platform: aws
     runs-on: ubuntu-latest
 
     steps:
