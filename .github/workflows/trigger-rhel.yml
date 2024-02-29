@@ -24,9 +24,9 @@ jobs:
           IMAGE_VERSION=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Labels.version')
           KERNEL_VERSION=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Labels."ostree.linux"')
           COMPOSE_ID=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Labels."redhat.compose-id"')
-          BOOTC_VERSION=$(podman run --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep bootc)
-          OSTREE_VERSION=$(podman run --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep "^ostree-2")
-          BOOTUPD_VERSION=$(podman run --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep bootupd)
+          BOOTC_VERSION=$(podman run --tls-verify=false --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep bootc)
+          OSTREE_VERSION=$(podman run --tls-verify=false --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep "^ostree-2")
+          BOOTUPD_VERSION=$(podman run --tls-verify=false --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep bootupd)
 
           echo "image_digest=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
           echo "image_version=$IMAGE_VERSION" >> $GITHUB_OUTPUT
