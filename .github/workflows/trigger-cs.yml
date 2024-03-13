@@ -16,7 +16,7 @@ jobs:
         id: check_image_cs9
         run: |
           IMAGE_DIGEST=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Digest')
-          IMAGE_VERSION=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Labels.version')
+          IMAGE_VERSION=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Labels."org.opencontainers.image.version"')
           KERNEL_VERSION=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Labels."ostree.linux"')
           COMPOSE_ID=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Labels."redhat.compose-id"')
           BOOTC_VERSION=$(podman run --rm quay.io/centos-bootc/centos-bootc:stream9 rpm -qa | grep bootc)
