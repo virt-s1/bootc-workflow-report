@@ -21,7 +21,7 @@ jobs:
           sudo dnf install -y podman skopeo jq
 
           IMAGE_DIGEST=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Digest')
-          IMAGE_VERSION=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Labels.version')
+          IMAGE_VERSION=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Labels."org.opencontainers.image.version"')
           KERNEL_VERSION=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Labels."ostree.linux"')
           COMPOSE_ID=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Labels."redhat.compose-id"')
           BOOTC_VERSION=$(podman run --tls-verify=false --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep bootc)
