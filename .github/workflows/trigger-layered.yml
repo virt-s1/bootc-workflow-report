@@ -1,0 +1,146 @@
+---
+name: layered images trigger
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * 1'
+
+jobs:
+  check-image:
+    # Do not run this job on any fork repos
+    if: github.repository == 'virt-s1/bootc-workflow-report'
+    runs-on: container-runner
+    container:
+      image: quay.io/fedora/fedora:39
+      options: --privileged
+    steps:
+      - name: Check RHEL 9 image info
+        id: check_image_layered
+        run: |
+          sudo dnf install -y podman skopeo jq
+
+          RHEL_IMAGE_DIGEST=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Digest')
+          RHEL_IMAGE_VERSION=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Labels."org.opencontainers.image.version"')
+          RHEL_KERNEL_VERSION=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Labels."ostree.linux"')
+          RHEL_COMPOSE_ID=$(skopeo inspect --tls-verify=false "docker://${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" | jq -r '.Labels."redhat.compose-id"')
+          RHEL_BOOTC_VERSION=$(podman run --tls-verify=false --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep bootc)
+          RHEL_OSTREE_VERSION=$(podman run --tls-verify=false --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep "^ostree-2")
+          RHEL_BOOTUPD_VERSION=$(podman run --tls-verify=false --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep bootupd)
+
+          CS_IMAGE_DIGEST=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Digest')
+          CS_IMAGE_VERSION=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Labels."org.opencontainers.image.version"')
+          CS_KERNEL_VERSION=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Labels."ostree.linux"')
+          CS_COMPOSE_ID=$(skopeo inspect docker://quay.io/centos-bootc/centos-bootc:stream9 | jq -r '.Labels."redhat.compose-id"')
+          CS_BOOTC_VERSION=$(podman run --rm quay.io/centos-bootc/centos-bootc:stream9 rpm -qa | grep bootc)
+          CS_OSTREE_VERSION=$(podman run --rm quay.io/centos-bootc/centos-bootc:stream9 rpm -qa | grep "^ostree-2")
+          CS_BOOTUPD_VERSION=$(podman run --rm quay.io/centos-bootc/centos-bootc:stream9 rpm -qa | grep bootupd)
+
+          echo "rhel_image_digest=$RHEL_IMAGE_DIGEST" >> $GITHUB_OUTPUT
+          echo "rhel_image_version=$RHEL_IMAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "rhel_kernel_version=$RHEL_KERNEL_VERSION" >> $GITHUB_OUTPUT
+          echo "rhel_compose_id=$RHEL_COMPOSE_ID" >> $GITHUB_OUTPUT
+          echo "rhel_bootc_version=$RHEL_BOOTC_VERSION" >> $GITHUB_OUTPUT
+          echo "rhel_ostree_version=$RHEL_OSTREE_VERSION" >> $GITHUB_OUTPUT
+          echo "rhel_bootupd_version=$RHEL_BOOTUPD_VERSION" >> $GITHUB_OUTPUT
+
+          echo "cs_image_digest=$RHEL_IMAGE_DIGEST" >> $GITHUB_OUTPUT
+          echo "cs_image_version=$RHEL_IMAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "cs_kernel_version=$RHEL_KERNEL_VERSION" >> $GITHUB_OUTPUT
+          echo "cs_compose_id=$RHEL_COMPOSE_ID" >> $GITHUB_OUTPUT
+          echo "cs_bootc_version=$RHEL_BOOTC_VERSION" >> $GITHUB_OUTPUT
+          echo "cs_ostree_version=$RHEL_OSTREE_VERSION" >> $GITHUB_OUTPUT
+          echo "cs_bootupd_version=$RHEL_BOOTUPD_VERSION" >> $GITHUB_OUTPUT
+        env:
+          RHEL_REGISTRY_URL: ${{ secrets.RHEL_REGISTRY_URL }}
+
+    outputs:
+      rhel_image_digest: ${{ steps.check_image_layered.outputs.rhel_image_digest }}
+      rhel_image_version: ${{ steps.check_image_layered.outputs.rhel_image_version }}
+      rhel_kernel_version: ${{ steps.check_image_layered.outputs.rhel_kernel_version }}
+      rhel_compose_id: ${{ steps.check_image_layered.outputs.rhel_compose_id }}
+      rhel_bootc_version: ${{ steps.check_image_layered.outputs.rhel_bootc_version }}
+      rhel_ostree_version: ${{ steps.check_image_layered.outputs.rhel_ostree_version }}
+      rhel_bootupd_version: ${{ steps.check_image_layered.outputs.rhel_bootupd_version }}
+      cs_image_digest: ${{ steps.check_image_layered.outputs.cs_image_digest }}
+      cs_image_version: ${{ steps.check_image_layered.outputs.cs_image_version }}
+      cs_kernel_version: ${{ steps.check_image_layered.outputs.cs_kernel_version }}
+      cs_compose_id: ${{ steps.check_image_layered.outputs.cs_compose_id }}
+      cs_bootc_version: ${{ steps.check_image_layered.outputs.cs_bootc_version }}
+      cs_ostree_version: ${{ steps.check_image_layered.outputs.cs_ostree_version }}
+      cs_bootupd_version: ${{ steps.check_image_layered.outputs.cs_bootupd_version }}
+
+  create-pr:
+    needs: check-image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Save tested container image digest
+        run: echo "${{ needs.check-image.outputs.image_digest }}" >> pr_files/pr_file.rhel
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "build: layered image rhel9-rhel_bootc:rhel-9.4 - ${{ needs.check-image.outputs.rhel_image_version }} - centos-bootc:stream9 - ${{ needs.check-image.outputs.cs_image_version }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "rhel9-rhel_bootc:rhel-9.4 - ${{ needs.check-image.outputs.image_version }} - centos-bootc:stream9 - ${{ needs.check-image.outputs.cs_image_version }} - ${{ steps.date.outputs.date }}"
+          labels: auto-merge,rhel9-rhel_bootc:rhel-9.4,centos-bootc:stream9
+          body: |
+            rhel9-rhel_bootc:rhel-9.4 image ${{ needs.check-image.outputs.rhel_image_version }}
+            - Date: ${{ steps.date.outputs.date }}
+            - Image Digest: ${{ needs.check-image.outputs.rhel_image_digest }}
+            - Image Version: ${{ needs.check-image.outputs.rhel_image_version }}
+            - Kernel Version: ${{ needs.check-image.outputs.rhel_kernel_version }}
+            - Compose ID: ${{ needs.check-image.outputs.rhel_compose_id }}
+            - bootc Version: ${{ needs.check-image.outputs.rhel_bootc_version }}
+            - ostree Version: ${{ needs.check-image.outputs.rhel_ostree_version }}
+            - bootupd Version: ${{ needs.check-image.outputs.rhel_bootupd_version }}
+
+            centos-bootc:stream9 image ${{ needs.check-image.outputs.cs_image_version }}
+            - Date: ${{ steps.date.outputs.date }}
+            - Image URL: quay.io/centos-bootc/centos-bootc:stream9
+            - Image Digest: ${{ needs.check-image.outputs.cs_image_digest }}
+            - Image Version: ${{ needs.check-image.outputs.cs_image_version }}
+            - Kernel Version: ${{ needs.check-image.outputs.cs_kernel_version }}
+            - Compose ID: ${{ needs.check-image.outputs.cs_compose_id }}
+            - bootc Version: ${{ needs.check-image.outputs.cs_bootc_version }}
+            - ostree Version: ${{ needs.check-image.outputs.cs_ostree_version }}
+            - bootupd Version: ${{ needs.check-image.outputs.cs_bootupd_version }}
+
+            Test includes OS replace test and anaconda installation test
+            - The OS replace test will use `bootc install` command inside bootc container image to install bootc OCI Image
+            - The anaconda test will install the bootc OCI image from kickstart command `ostreecontainer`
+
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: rebase
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-layered-images
+
+      - name: Create a project card to track compose test result
+        uses: peter-evans/create-or-update-project-card@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          project-name: bootc test
+          column-name: layered_images
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
