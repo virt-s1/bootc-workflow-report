@@ -94,7 +94,7 @@ jobs:
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "rhel9-rhel_bootc:rhel-9.4 - ${{ needs.check-image.outputs.image_version }} - centos-bootc:stream9 - ${{ needs.check-image.outputs.cs_image_version }} - ${{ steps.date.outputs.date }}"
+          title: "rhel9-rhel_bootc:rhel-9.4 - ${{ needs.check-image.outputs.rhel_image_version }} - centos-bootc:stream9 - ${{ needs.check-image.outputs.cs_image_version }} - ${{ steps.date.outputs.date }}"
           labels: auto-merge,rhel9-rhel_bootc:rhel-9.4,centos-bootc:stream9
           body: |
             rhel9-rhel_bootc:rhel-9.4 image ${{ needs.check-image.outputs.rhel_image_version }}
