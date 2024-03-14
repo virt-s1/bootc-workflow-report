@@ -167,9 +167,7 @@ jobs:
   rhel94-layered:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-rhel94') ||
-            endsWith(github.event.comment.body, '/test-rhel94-replace') ||
-            endsWith(github.event.comment.body, '/test-layered-images')) }}
+            endsWith(github.event.comment.body, '/test-layered-images') }}
     continue-on-error: true
     strategy:
       matrix:
@@ -203,9 +201,7 @@ jobs:
   cs9-layered:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-cs9') ||
-            endsWith(github.event.comment.body, '/test-cs9-replace') ||
-            endsWith(github.event.comment.body, '/test-layered-images')) }}
+            endsWith(github.event.comment.body, '/test-layered-images') }}
     continue-on-error: true
     strategy:
       matrix:
