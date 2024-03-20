@@ -27,6 +27,7 @@ jobs:
           BOOTC_VERSION=$(podman run --tls-verify=false --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep bootc)
           OSTREE_VERSION=$(podman run --tls-verify=false --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep "^ostree-2")
           BOOTUPD_VERSION=$(podman run --tls-verify=false --rm "${RHEL_REGISTRY_URL}/rhel9-rhel_bootc:rhel-9.4" rpm -qa | grep bootupd)
+          BIB_IMAGE_DIGEST=$(skopeo inspect --tls-verify=false "docker://quay.io/centos-bootc/bootc-image-builder:latest" | jq -r '.Digest')
 
           echo "image_digest=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
           echo "image_version=$IMAGE_VERSION" >> $GITHUB_OUTPUT
@@ -35,6 +36,7 @@ jobs:
           echo "bootc_version=$BOOTC_VERSION" >> $GITHUB_OUTPUT
           echo "ostree_version=$OSTREE_VERSION" >> $GITHUB_OUTPUT
           echo "bootupd_version=$BOOTUPD_VERSION" >> $GITHUB_OUTPUT
+          echo "bib_image_digest=$BIB_IMAGE_DIGEST" >> $GITHUB_OUTPUT
         env:
           RHEL_REGISTRY_URL: ${{ secrets.RHEL_REGISTRY_URL }}
 
@@ -46,6 +48,7 @@ jobs:
       bootc_version: ${{ steps.check_image_rhel9.outputs.bootc_version }}
       ostree_version: ${{ steps.check_image_rhel9.outputs.ostree_version }}
       bootupd_version: ${{ steps.check_image_rhel9.outputs.bootupd_version }}
+      bib_image_digest: ${{ steps.check_image_rhel9.outputs.bib_image_digest }}
 
   create-pr:
     needs: check-image
@@ -83,10 +86,12 @@ jobs:
             - bootc Version: ${{ needs.check-image.outputs.bootc_version }}
             - ostree Version: ${{ needs.check-image.outputs.ostree_version }}
             - bootupd Version: ${{ needs.check-image.outputs.bootupd_version }}
+            - bib Image Digest: ${{ needs.check-image.outputs.bib_image_digest }}
 
-            Test includes OS replace test and anaconda installation test
+            Test includes OS replace test, anaconda installation test and bib test
             - The OS replace test will use `bootc install` command inside bootc container image to install bootc OCI Image
             - The anaconda test will install the bootc OCI image from kickstart command `ostreecontainer`
+            - The bib test will build AMI, qcow2, and vmdk with bib and deploy image
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
